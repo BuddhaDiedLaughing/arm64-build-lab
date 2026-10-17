@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
+      - uses: actions/checkout@v4
       - name: toolchain
         run: |
           rustup target add aarch64-linux-android
@@ -17,7 +18,7 @@ jobs:
         run: |
           git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/DavidVentura/slimt.git /tmp/slimt
           git clone --depth 1 https://github.com/DavidVentura/translator-rs /tmp/src
-          cp "$GITHUB_WORKSPACE/src/market_server.rs" /tmp/src/src/bin/market_server.rs
+          cp src/market_server.rs /tmp/src/src/bin/market_server.rs
           ls -l /tmp/src/src/bin/market_server.rs
       - name: build
         shell: bash
@@ -38,8 +39,8 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          echo '== first 15 lines =='
-          head -15 /tmp/build.log || true
+          echo '== first 20 lines =='
+          head -20 /tmp/build.log || true
           echo '== error context =='
           grep -n -i -A10 'error\[\|error:\|undefined reference\|cannot find\|CMake Error' /tmp/build.log | head -70 || true
       - name: collect
@@ -53,7 +54,6 @@ jobs:
           cp -v $D/market_server out/ 2>/dev/null || true
           cp -v $SYS/libc++_shared.so out/ 2>/dev/null || true
           ls -l out
-          echo "files=$(ls -A out | wc -l)" >> $GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
