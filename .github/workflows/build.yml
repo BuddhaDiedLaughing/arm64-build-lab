@@ -6,7 +6,7 @@ on:
 jobs:
   arm64:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
     steps:
       - name: toolchain
         run: |
@@ -17,6 +17,8 @@ jobs:
         run: |
           git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/DavidVentura/slimt.git /tmp/slimt
           git clone --depth 1 https://github.com/DavidVentura/translator-rs /tmp/src
+          cp "$GITHUB_WORKSPACE/src/market_server.rs" /tmp/src/src/bin/market_server.rs
+          ls -l /tmp/src/src/bin/market_server.rs
       - name: build
         shell: bash
         working-directory: /tmp/src
@@ -31,7 +33,7 @@ jobs:
           export CXX_aarch64_linux_android=$BIN/aarch64-linux-android24-clang++
           export AR_aarch64_linux_android=$BIN/llvm-ar
           export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$BIN/aarch64-linux-android24-clang
-          cargo build --release --target aarch64-linux-android --features translate-cli --bin translate 2>&1 | tee /tmp/build.log | tail -20
+          cargo build --release --target aarch64-linux-android --features "translate-cli,http" --bin market_server --bin translate 2>&1 | tee /tmp/build.log | tail -25
       - name: diagnostics
         if: failure()
         shell: bash
@@ -39,7 +41,7 @@ jobs:
           echo '== first 15 lines =='
           head -15 /tmp/build.log || true
           echo '== error context =='
-          grep -n -i -A8 'error:\|undefined reference\|cannot find\|CMake Error' /tmp/build.log | head -60 || true
+          grep -n -i -A10 'error\[\|error:\|undefined reference\|cannot find\|CMake Error' /tmp/build.log | head -70 || true
       - name: collect
         if: always()
         shell: bash
@@ -48,6 +50,7 @@ jobs:
           SYS=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android
           mkdir -p out
           cp -v $D/translate out/ 2>/dev/null || true
+          cp -v $D/market_server out/ 2>/dev/null || true
           cp -v $SYS/libc++_shared.so out/ 2>/dev/null || true
           ls -l out
           echo "files=$(ls -A out | wc -l)" >> $GITHUB_STEP_SUMMARY
