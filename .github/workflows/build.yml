@@ -16,7 +16,6 @@ jobs:
       - name: upstream sources
         run: |
           git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/DavidVentura/slimt.git /tmp/slimt
-          ls /tmp/slimt/3rd-party/sentencepiece/CMakeLists.txt
           git clone --depth 1 https://github.com/DavidVentura/translator-rs /tmp/src
       - name: build
         shell: bash
@@ -32,14 +31,15 @@ jobs:
           export CXX_aarch64_linux_android=$BIN/aarch64-linux-android24-clang++
           export AR_aarch64_linux_android=$BIN/llvm-ar
           export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$BIN/aarch64-linux-android24-clang
-          echo "cmake: $(cmake --version | head -1)"
-          echo "ninja: $(command -v ninja || echo absent)"
-          cargo build --release --target aarch64-linux-android --lib -p translator 2>&1 | tee /tmp/build.log | tail -30
+          echo '== bin: translate =='
+          cargo build --release --target aarch64-linux-android --bin translate 2>&1 | tee /tmp/build.log | tail -25
+          echo '== lib: staticlib =='
+          cargo rustc --release --target aarch64-linux-android --lib -p translator -- --crate-type staticlib 2>&1 | tee -a /tmp/build.log | tail -12
       - name: diagnostics
         if: failure()
         shell: bash
         run: |
-          echo '== first 20 lines of cargo output =='
+          echo '== first 20 lines =='
           head -20 /tmp/build.log || true
           echo '== CMake Error context =='
           grep -n -i -B3 -A12 'CMake Error' /tmp/build.log | head -50 || true
@@ -49,10 +49,13 @@ jobs:
         if: always()
         shell: bash
         run: |
+          D=/tmp/src/target/aarch64-linux-android/release
           mkdir -p out
-          cp -v /tmp/src/target/aarch64-linux-android/release/*.so out/ 2>/dev/null || true
-          cp -v /tmp/src/target/aarch64-linux-android/release/*.a out/ 2>/dev/null || true
+          cp -v $D/translate out/ 2>/dev/null || true
+          cp -v $D/*.a out/ 2>/dev/null || true
+          cp -v $D/*.so out/ 2>/dev/null || true
           ls -l out
+          echo "files=$(ls -A out | wc -l)" >> $GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
