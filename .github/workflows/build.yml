@@ -31,29 +31,24 @@ jobs:
           export CXX_aarch64_linux_android=$BIN/aarch64-linux-android24-clang++
           export AR_aarch64_linux_android=$BIN/llvm-ar
           export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$BIN/aarch64-linux-android24-clang
-          echo '== bin: translate (feature translate-cli) =='
-          cargo build --release --target aarch64-linux-android --features translate-cli --bin translate 2>&1 | tee /tmp/build.log | tail -25
-          echo '== lib: staticlib =='
-          cargo rustc --release --target aarch64-linux-android --lib -p translator -- --crate-type staticlib 2>&1 | tee -a /tmp/build.log | tail -12
+          cargo build --release --target aarch64-linux-android --features translate-cli --bin translate 2>&1 | tee /tmp/build.log | tail -20
       - name: diagnostics
         if: failure()
         shell: bash
         run: |
           echo '== first 15 lines =='
           head -15 /tmp/build.log || true
-          echo '== CMake Error context =='
-          grep -n -i -B3 -A12 'CMake Error' /tmp/build.log | head -50 || true
-          echo '== compiler error context =='
-          grep -n -i -A8 'error:\|undefined reference\|cannot find' /tmp/build.log | head -50 || true
+          echo '== error context =='
+          grep -n -i -A8 'error:\|undefined reference\|cannot find\|CMake Error' /tmp/build.log | head -60 || true
       - name: collect
         if: always()
         shell: bash
         run: |
           D=/tmp/src/target/aarch64-linux-android/release
+          SYS=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android
           mkdir -p out
           cp -v $D/translate out/ 2>/dev/null || true
-          cp -v $D/*.a out/ 2>/dev/null || true
-          cp -v $D/*.so out/ 2>/dev/null || true
+          cp -v $SYS/libc++_shared.so out/ 2>/dev/null || true
           ls -l out
           echo "files=$(ls -A out | wc -l)" >> $GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v4
