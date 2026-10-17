@@ -6,7 +6,7 @@ on:
 jobs:
   arm64:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: toolchain
         run: |
@@ -15,7 +15,8 @@ jobs:
           "$BIN/aarch64-linux-android24-clang++" --version | head -2
       - name: upstream sources
         run: |
-          git clone --depth 1 https://github.com/DavidVentura/slimt.git /tmp/slimt
+          git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/DavidVentura/slimt.git /tmp/slimt
+          ls /tmp/slimt/3rd-party/sentencepiece/CMakeLists.txt
           git clone --depth 1 https://github.com/DavidVentura/translator-rs /tmp/src
       - name: build
         shell: bash
@@ -38,12 +39,12 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          echo '== first 30 lines of cargo output =='
-          head -30 /tmp/build.log || true
+          echo '== first 20 lines of cargo output =='
+          head -20 /tmp/build.log || true
           echo '== CMake Error context =='
-          grep -n -i -B3 -A12 'CMake Error' /tmp/build.log | head -60 || true
+          grep -n -i -B3 -A12 'CMake Error' /tmp/build.log | head -50 || true
           echo '== compiler error context =='
-          grep -n -i -A8 'error:\|undefined reference\|cannot find' /tmp/build.log | head -60 || true
+          grep -n -i -A8 'error:\|undefined reference\|cannot find' /tmp/build.log | head -50 || true
       - name: collect
         if: always()
         shell: bash
